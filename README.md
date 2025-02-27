@@ -10,7 +10,7 @@ This plugin is provided as open source software for you to use and modify.  If y
 
 ## Setup
 
-![Setup](https://github.com/jcerecke/Component-Syncer-for-Room-Combiner/raw/master/images/setup.gif)
+![Setup](./images/setup.gif)
 
 ### Synced Component Names
 
@@ -38,7 +38,7 @@ Just use your Room Combiner component as usual to group rooms together. When roo
 
 ### Example with Gain Components
 
-![Usage](https://github.com/jcerecke/Component-Syncer-for-Room-Combiner/raw/master/images/usage.gif)
+![Usage](./images/usage.gif)
 
 ## Caveats
 
