@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Component Syncer for Room Combiner — Plugin Help</title>
+<style>
+  :root {
+    --charcoal: #2E3033;
+    --slate:    #6B6F76;
+    --hairline: #D2D5D9;
+    --oxblood:  #7A2E2E;
+    --surface:  #FFFFFF;
+    --wash:     #F7F8F9;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 24px 64px;
+    background: var(--surface);
+    color: var(--charcoal);
+    font-family: Roboto, "Segoe UI", system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 960px;
+  }
+  header.brand {
+    border-bottom: 3px solid var(--charcoal);
+    padding-bottom: 16px;
+    margin-bottom: 32px;
+  }
+  header.brand h1 { font-size: 26px; font-weight: 500; margin: 0 0 4px; }
+  header.brand .meta { color: var(--slate); font-size: 13px; }
+  header.brand .prov { color: var(--oxblood); font-size: 13px; margin-top: 4px; }
+  h2 {
+    font-size: 19px; font-weight: 500; margin: 40px 0 12px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--hairline);
+  }
+  h3 { font-size: 15px; font-weight: 500; margin: 24px 0 8px; }
+  table {
+    border-collapse: collapse; width: 100%; margin: 12px 0 20px;
+    font-size: 13.5px; display: block; overflow-x: auto;
+  }
+  th, td {
+    border: 1px solid var(--hairline); padding: 7px 10px;
+    text-align: left; vertical-align: top;
+  }
+  th { background: var(--wash); font-weight: 500; }
+  code {
+    font-family: Consolas, "Roboto Mono", monospace;
+    font-size: 12.5px; background: var(--wash);
+    padding: 1px 5px; border-radius: 2px;
+  }
+  .note {
+    border-left: 3px solid var(--oxblood); background: var(--wash);
+    padding: 10px 14px; margin: 16px 0;
+  }
+  .note strong { color: var(--oxblood); }
+  ul { padding-left: 22px; }
+  footer {
+    margin-top: 56px; padding-top: 16px;
+    border-top: 1px solid var(--hairline);
+    color: var(--slate); font-size: 12.5px;
+  }
+  footer a { color: var(--oxblood); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header class="brand">
+  <h1>Component Syncer for Room Combiner</h1>
+  <div class="meta">Plugin version 1.1.0.0 &middot; This document written for 1.1.0.0</div>
+  <div class="prov">White Label AV &middot; whitelabelav.co.nz</div>
+</header>
+
+<h2>Plugin description</h2>
+<p>
+  Component Syncer keeps a group of like Q-SYS components in step with each other,
+  driven by the state of a Room Combiner. You nominate one component per room; when
+  the Room Combiner joins rooms together, the nominated components in that group are
+  synchronised, and a change made to any one of them is pushed to the others in the
+  same group.
+</p>
+<p>
+  Which controls are synchronised is chosen per component type at design time, and
+  which control property carries the change (String, Value, Position or Boolean) is
+  selectable at runtime.
+</p>
+
+<h2>Tested with</h2>
+<table>
+  <tr><th>Item</th><th>Version</th></tr>
+  <tr><td>Q-SYS Designer Software (QDS)</td><td>9.13.1</td></tr>
+  <tr><td>Minimum QDS version</td><td>9.0 — no libraries beyond the built-in <code>json</code> module are required</td></tr>
+  <tr><td>Core hardware</td><td>Emulation and Core-hosted; no hardware-specific dependencies</td></tr>
+  <tr><td>Controlled device</td><td>None. This plugin operates entirely on components inside the design.</td></tr>
+</table>
+
+<h2>Setup and configuration</h2>
+<ol>
+  <li>
+    Place a <strong>Room Combiner</strong> in your design and configure its room count
+    and walls as usual.
+  </li>
+  <li>
+    Place <strong>Component Syncer</strong> and set its <code>Rooms</code> property to
+    match the Room Combiner's room count. A mismatch is reported through the Status
+    indicator rather than being silently tolerated.
+  </li>
+  <li>
+    Give every component you intend to synchronise a <strong>Code Name</strong>
+    (Script Access), since the plugin addresses them by name.
+  </li>
+  <li>
+    Select the Room Combiner in <strong>Room Combiner Name</strong>. The combo box is
+    populated with every <code>room_combiner</code> component in the design.
+  </li>
+  <li>
+    Enter the Code Name of the component to be synchronised for each room, under
+    <strong>Synced Component Names</strong>. You need at least two. You do not need one
+    for every room — a design may legitimately have rooms with nothing to sync. An
+    unrecognised name turns its box red.
+  </li>
+  <li>
+    Once a valid component is found, <strong>Detected Component Type</strong> shows the
+    type being matched and <strong>Synced Controls</strong> lists every control in that
+    type. Tick the controls to synchronise.
+  </li>
+  <li>
+    Choose which property carries a change under <strong>Sync By Property</strong>. This
+    is a radio group — one property at a time — and defaults to <strong>String</strong>.
+  </li>
+</ol>
+
+<div class="note">
+  <strong>Important notes</strong>
+  <ul>
+    <li>
+      All nominated components must be of the <em>same type</em>. A mismatch sets Status
+      to Fault and names the offending components.
+    </li>
+    <li>
+      Avoid selecting indicator-only controls (LEDs, meters) under Synced Controls.
+      They report state rather than accept it, and syncing them achieves nothing.
+    </li>
+    <li>
+      Components of the same type may still carry different control sets — Custom
+      Controls, Matrix Mixers and Crossovers with differing properties are the common
+      cases. Syncing across these works but is the least-tested path; proceed with care.
+    </li>
+    <li>
+      The plugin's <code>Rooms</code> property must match the Room Combiner's room
+      count. It does not adapt automatically.
+    </li>
+    <li>
+      No instance limit, and no embedded components — so no impact on the design's
+      channel or player budget.
+    </li>
+    <li>
+      Control selections persist across reboot and redeploy in a hidden non-volatile
+      control, keyed to the detected component type. Changing the component type resets
+      the selection to defaults.
+    </li>
+  </ul>
+</div>
+
+<h2>Properties</h2>
+<table>
+  <tr>
+    <th>Name</th><th>Default</th><th>Type</th><th>Accepted values</th><th>Description</th>
+  </tr>
+  <tr>
+    <td><code>Rooms</code></td>
+    <td>8</td>
+    <td>Integer</td>
+    <td>2 – 256</td>
+    <td>
+      Number of rooms the plugin exposes. Set this to match the room count of the
+      Room Combiner it is paired with. Changing it re-creates the per-room component
+      name boxes and resizes the panel.
+    </td>
+  </tr>
+  <tr>
+    <td><code>Debug Print</code></td>
+    <td>None</td>
+    <td>Enum</td>
+    <td>None, Function Calls, Sync Activity, All</td>
+    <td>
+      Diagnostic output to the debug window. Leave at <code>None</code> in production:
+      at high room counts <code>Sync Activity</code> emits a line per control per
+      propagation, which is itself enough load to matter. The plugin version is printed
+      at startup regardless.
+    </td>
+  </tr>
+</table>
+
+<h2>Controls</h2>
+<p><em>N</em> below is the room number, from 1 to the <code>Rooms</code> property.</p>
+<table>
+  <tr>
+    <th>Name</th><th>Type</th><th>Default</th><th>Accepted range</th>
+    <th>Description</th><th>Pin name</th><th>Pin type</th><th>Direction</th>
+  </tr>
+  <tr>
+    <td><code>RoomCombineTarget</code></td>
+    <td>Combo Box (text)</td>
+    <td>Empty</td>
+    <td>Any <code>room_combiner</code> Code Name in the design</td>
+    <td>Selects the Room Combiner that drives grouping. Turns red if the name does not resolve.</td>
+    <td>Room Combiner Name</td><td>Text</td><td>Input</td>
+  </tr>
+  <tr>
+    <td><code>SyncingComponentTargets N</code></td>
+    <td>Text Entry</td>
+    <td>Empty</td>
+    <td>Any component Code Name; blank to skip the room</td>
+    <td>Code Name of the component to synchronise for room <em>N</em>. Blank is valid and means "nothing to sync in this room". Turns red on an unrecognised name.</td>
+    <td>Synced Component Name~Room <em>N</em></td><td>Text</td><td>Input</td>
+  </tr>
+  <tr>
+    <td><code>SyncByString</code></td>
+    <td>Toggle Button (radio)</td>
+    <td><strong>On</strong></td>
+    <td>Boolean</td>
+    <td>When active, a changed control's <code>.String</code> is pushed to the others in its group. Default selection.</td>
+    <td>Sync by~String</td><td>Boolean</td><td>Input</td>
+  </tr>
+  <tr>
+    <td><code>SyncByValue</code></td>
+    <td>Toggle Button (radio)</td>
+    <td>Off</td>
+    <td>Boolean</td>
+    <td>When active, a changed control's <code>.Value</code> is pushed to the others in its group.</td>
+    <td>Sync by~Value</td><td>Boolean</td><td>Input</td>
+  </tr>
+  <tr>
+    <td><code>SyncByPosition</code></td>
+    <td>Toggle Button (radio)</td>
+    <td>Off</td>
+    <td>Boolean</td>
+    <td>When active, a changed control's <code>.Position</code> (0.0–1.0) is pushed to the others in its group.</td>
+    <td>Sync by~Position</td><td>Boolean</td><td>Input</td>
+  </tr>
+  <tr>
+    <td><code>SyncByBoolean</code></td>
+    <td>Toggle Button (radio)</td>
+    <td>Off</td>
+    <td>Boolean</td>
+    <td>When active, a changed control's <code>.Boolean</code> is pushed to the others in its group.</td>
+    <td>Sync by~Boolean</td><td>Boolean</td><td>Input</td>
+  </tr>
+  <tr>
+    <td><code>ComponentType</code></td>
+    <td>Text Indicator (read only)</td>
+    <td>Empty</td>
+    <td>Q-SYS component type string</td>
+    <td>The component type currently being matched, taken from the lowest-numbered room holding a valid component.</td>
+    <td>Detected Component Type</td><td>Text</td><td>Output</td>
+  </tr>
+  <tr>
+    <td><code>SyncedControls</code></td>
+    <td>List Box</td>
+    <td>All unticked</td>
+    <td>Controls present in the detected component type</td>
+    <td>Per-control opt-in. Clicking an entry toggles whether that control is synchronised. Selection is remembered across restarts.</td>
+    <td>—</td><td>—</td><td>No pin</td>
+  </tr>
+  <tr>
+    <td><code>Status</code></td>
+    <td>Status Indicator</td>
+    <td>Compromised — "Not configured"</td>
+    <td>OK, Compromised, Fault</td>
+    <td>
+      Plugin health. <strong>Compromised</strong> (yellow) means the plugin is not yet
+      configured — no Room Combiner selected, or no component names entered.
+      <strong>Fault</strong> (red) means something is genuinely wrong: a Room Combiner
+      name that does not resolve, fewer than two valid components, mixed component
+      types, or a room-count mismatch. The plugin never sets Initializing or Not
+      Present, which the Status Reporting standard reserves to the application.
+    </td>
+    <td>Status</td><td>Status</td><td>Output</td>
+  </tr>
+  <tr>
+    <td><code>NonVolatileMem</code></td>
+    <td>Text (hidden)</td>
+    <td>Empty</td>
+    <td>JSON</td>
+    <td>Internal. Persists the Synced Controls selection across reboot and redeploy. Not intended for user interaction.</td>
+    <td>—</td><td>—</td><td>No pin</td>
+  </tr>
+</table>
+
+<h2>Usage</h2>
+<p>
+  Operate the Room Combiner as you normally would. When room groupings change, every
+  synchronised component in a group is brought to the state of the lowest-numbered room
+  in that group that holds a valid component. From then on, a change to any control in
+  the group propagates to the rest.
+</p>
+
+<h2>Release notes</h2>
+<h3>1.1.0.0</h3>
+<ul>
+  <li>
+    <strong>Behaviour change — Sync By Property is now a radio group.</strong> Previously
+    the four buttons were independent, so a change could be pushed as several properties
+    at once. Exactly one is now active, defaulting to <code>String</code>. A design saved
+    by 1.0.x with more than one selected resolves to the first in the order String,
+    Value, Position, Boolean.
+  </li>
+  <li>
+    Synced Component Name boxes enlarged, and wrapped into a new row every four rooms, so
+    a high room count grows the panel downwards instead of off to the right. All fields
+    below the grid now share its width.
+  </li>
+  <li>
+    Corrected a misspelled key in the <code>NonVolatileMem</code> control definition
+    (<code>ControType</code> → <code>ControlType</code>), which had left its control type
+    unspecified since 1.0.0.
+  </li>
+  <li>
+    <strong>An unconfigured plugin now reports Compromised, not Fault.</strong> A freshly
+    placed instance is a setup task, not a failure, and no longer raises a red alarm.
+    The plugin also no longer sets <code>Initializing</code>, which the Status Reporting
+    standard reserves to the application.
+  </li>
+  <li>
+    <strong>Fixed the status flickering between Initializing and OK at high room
+    counts.</strong> Every edit to a component name box triggered a full
+    re-initialise, so loading a 256-room design ran 256 of them back to back.
+    Re-initialising is now debounced into a single pass.
+  </li>
+  <li>
+    <strong>Fixed a runaway propagation loop.</strong> Writing a synced value fired the
+    target control's own handler, which re-broadcast it to the whole group again. At 256
+    rooms a single fader move recursed until the Lua stack was exhausted. Propagation is
+    now guarded and skips writes to controls already holding the value: one move across
+    256 rooms costs 256 writes rather than tens of thousands.
+  </li>
+  <li>
+    Further work reduction for large designs: wall changes are debounced, stale event
+    handlers are torn down on re-initialise instead of being left live, redundant
+    sorting and per-target control reads were removed, and all diagnostic printing is
+    now gated behind the new <code>Debug Print</code> property.
+  </li>
+  <li>
+    Room number labels widened to fit three digits, so rooms above 99 are no longer
+    clipped.
+  </li>
+  <li>
+    The Synced Controls list is now sorted by name. It previously took Lua's
+    <code>pairs()</code> order, which is not guaranteed stable between runs, so the list
+    could reorder itself across a restart — and an entry's stored index could disagree
+    with its position, toggling the wrong control.
+  </li>
+  <li>Adopted the White Label AV brand header on the plugin control panel.</li>
+  <li>Panel restyled onto the shared brand colour, type and spacing tokens.</li>
+  <li>
+    <code>PluginInfo</code> completed with <code>Manufacturer</code>, <code>Model</code>,
+    <code>IsManaged</code> and <code>Type</code>, as the Verification Rubric requires.
+    Authorship updated to White Label AV.
+  </li>
+  <li>
+    Fixed unpredictable layering on the control panel: <code>ZOrder</code> was
+    previously set on some elements and not others, which Q-SYS leaves undefined. Every
+    element now carries a distinct value.
+  </li>
+  <li>
+    Fixed the Room group box and per-room text boxes drawing with no stroke colour, the
+    result of a reference to an undefined colour constant.
+  </li>
+  <li>Source split into a multi-file PLUGCC layout under <code>src/</code>. No runtime behaviour change.</li>
+</ul>
+<h3>1.0.1</h3>
+<ul>
+  <li>Added an event handler for Room Combiner wall configuration changes.</li>
+</ul>
+<h3>1.0.0</h3>
+<ul>
+  <li>Initial release.</li>
+</ul>
+
+<footer>
+  Built by White Label AV &middot; New Zealand<br>
+  <a href="https://whitelabelav.co.nz">whitelabelav.co.nz</a> &middot;
+  <a href="mailto:support@whitelabelav.co.nz">support@whitelabelav.co.nz</a>
+</footer>
+
+</body>
+</html>

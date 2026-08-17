@@ -1,0 +1,3 @@
+[submodule "vendor/wlav-brand"]
+	path = vendor/wlav-brand
+	url = https://github.com/White-Label-AV/wlav-plugin-brand
