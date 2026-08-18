@@ -6,20 +6,24 @@ A Q-SYS plugin by [White Label AV](https://whitelabelav.co.nz).
 
 ## Install
 
-Download [`roomcombine-components-syncer.qplug`](./roomcombine-components-syncer.qplug)
-and drop it into your Q-SYS Designer plugins folder:
+Download [`roomcombine-components-syncer.qplug`](./roomcombine-components-syncer.qplug),
+then either:
 
-```
-%USERPROFILE%\Documents\QSC\Q-Sys Designer\Plugins
-```
+- **double-click the file** and Designer will install it for you, or
+- copy it into your Q-SYS Designer plugins folder yourself:
 
-Restart Designer, then find **Component Syncer** under *Room Combiner Add-ons* in the
-Schematic Elements pane. The `.qplug` is self-contained — no other files are needed to
-use it.
+  ```
+  %USERPROFILE%\Documents\QSC\Q-Sys Designer\Plugins
+  ```
+
+Designer watches that folder, so there is no need to restart it. Find **Component
+Syncer** under *Room Combiner Add-ons* in the Schematic Elements pane. The `.qplug` is
+self-contained — no other files are needed to use it.
 
 Full reference documentation, including the properties and controls tables, is in
-[`docs/pluginhelp.htm`](./docs/pluginhelp.htm). Pressing <kbd>F1</kbd> on the plugin in
-Designer opens it.
+[`docs/pluginhelp.htm`](./docs/pluginhelp.htm) — open it in a browser. <kbd>F1</kbd> on
+the component in Designer only opens this document for plugins installed through the
+Q-SYS Library, not for one dropped into the plugins folder.
 
 ## Setup
 
