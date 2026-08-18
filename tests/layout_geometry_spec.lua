@@ -60,7 +60,9 @@ for _, rooms in ipairs({ 2, 4, 8, 12, 16, 24, 64, 256 }) do
   local items = {}
   for name, l in pairs(layout) do
     check(l.Position ~= nil and l.Size ~= nil, "rooms=" .. rooms .. ": " .. name .. " has Position+Size")
-    if l.Position then
+    -- Style "None" controls are not drawn, so they neither collide with anything
+    -- nor contribute to the panel's extent.
+    if l.Position and l.Style ~= "None" then
       minY = math.min(minY, l.Position[2])
       items[#items + 1] = { name = name, Position = l.Position, Size = l.Size }
     end

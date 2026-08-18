@@ -882,6 +882,20 @@ function GetControlLayout(props)
 	}
 	fieldLabel("Status", statusY, 48)
 
+	--[[ Internal storage for the Synced Controls selection. Style "None" hides it
+	     while keeping it a real control, which is what the layout completeness
+	     check asks for -- every control wants a layout entry, even the ones the
+	     integrator is never meant to see. Nothing is rendered, so its position is
+	     immaterial. ]]--
+	z = z + 1
+	layout["NonVolatileMem"] = {
+		PrettyName = "Internal~Saved Control Selection",
+		Style = "None",
+		Position = {LABEL_X, top},
+		Size = {1, 1},
+		ZOrder = z
+	}
+
 	return layout, graphics
 end
 
