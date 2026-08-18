@@ -9,20 +9,12 @@
        4. the sync path does not scale quadratically with room count
 ]]--
 
-package.path = (arg[0]:match("^(.*)[/\\][^/\\]*$") or ".") .. "/support/?.lua;" .. package.path
+package.path = "./tests/support/?.lua;" .. (arg[0]:match("^(.*)[/\\][^/\\]*$") or ".") .. "/support/?.lua;" .. package.path
 local S = require("qsys_stub")
+local H = require("spec_helper")
 
-local qplug = assert(arg[1], "usage: lua status_and_efficiency_spec.lua <file.qplug>")
-
-local failures, checks = 0, 0
-local function check(cond, msg)
-  checks = checks + 1
-  if not cond then
-    failures = failures + 1
-    print("  FAIL " .. msg)
-  end
-end
-local function section(name) print("\n-- " .. name) end
+local qplug = H.qplug
+local check, section = H.check, H.section
 
 -- Wraps the plugin's InitialiseAll so tests can count how often it actually ran.
 local function countInits(h)
@@ -258,6 +250,4 @@ do
   check(#h.prints > 1, "Debug Print=All does emit diagnostics, got " .. #h.prints .. " line(s)")
 end
 
-print(("\n%d checks, %d failure(s)"):format(checks, failures))
-if failures > 0 then os.exit(1) end
-print("ALL STATUS / EFFICIENCY TESTS PASSED")
+H.finish("Component Syncer: status, debouncing and sync cost")

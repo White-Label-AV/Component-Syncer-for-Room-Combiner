@@ -2,7 +2,9 @@
 -- Loads the compiled .qplug with Controls = nil (design time only) and asserts
 -- the header is present, content clears it, and nothing overlaps or overruns.
 
-local qplug = assert(arg[1], "usage: lua geomcheck.lua <file.qplug>")
+package.path = "./tests/support/?.lua;" .. (arg[0]:match("^(.*)[/\\][^/\\]*$") or ".") .. "/support/?.lua;" .. package.path
+local H = require("spec_helper")
+local qplug = H.qplug
 
 Controls = nil
 local chunk = assert(loadfile(qplug))
@@ -23,13 +25,8 @@ local function overlaps(a, b)
   return ax1 < bx2 and bx1 < ax2 and ay1 < by2 and by1 < ay2
 end
 
-local failures = 0
-local function check(cond, msg)
-  if not cond then
-    failures = failures + 1
-    print("  FAIL " .. msg)
-  end
-end
+local check = H.check
+H.section("panel geometry across room counts")
 
 print("PluginInfo.Version    = " .. tostring(PluginInfo.Version))
 print("PluginInfo.Model      = " .. tostring(PluginInfo.Model))
@@ -108,10 +105,4 @@ for _, rooms in ipairs({ 2, 4, 8, 12, 16, 24, 64, 256 }) do
         :format(rooms, #items, #graphics, maxX, minY))
 end
 
-print("")
-if failures == 0 then
-  print("ALL GEOMETRY CHECKS PASSED")
-else
-  print(failures .. " CHECK(S) FAILED")
-  os.exit(1)
-end
+H.finish("Component Syncer: panel geometry")

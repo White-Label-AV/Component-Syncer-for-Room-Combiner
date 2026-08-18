@@ -9,19 +9,12 @@
      shows up here as a stack overflow, not as a wrong value.
 ]]--
 
-package.path = (arg[0]:match("^(.*)[/\\][^/\\]*$") or ".") .. "/support/?.lua;" .. package.path
+package.path = "./tests/support/?.lua;" .. (arg[0]:match("^(.*)[/\\][^/\\]*$") or ".") .. "/support/?.lua;" .. package.path
 local S = require("qsys_stub")
+local H = require("spec_helper")
 
-local qplug = assert(arg[1], "usage: lua syncby_radio_spec.lua <file.qplug>")
-
-local failures, checks = 0, 0
-local function check(cond, msg)
-  checks = checks + 1
-  if not cond then
-    failures = failures + 1
-    print("  FAIL " .. msg)
-  end
-end
+local qplug = H.qplug
+local check = H.check
 
 -- Load the plugin with the four Sync By buttons pre-set as given.
 local function load(presets)
@@ -40,7 +33,7 @@ end
 
 local function countActive(C) return #activeNames(C) end
 
-print("=== Sync By Property radio group ===\n")
+H.section("Sync By Property radio group")
 
 --[[ 1. A fresh instance settles on exactly one selection, and it is String. ]]--
 do
@@ -106,6 +99,4 @@ do
         "existing choice: Position preserved, not reset to the String default")
 end
 
-print(("\n%d checks, %d failure(s)"):format(checks, failures))
-if failures > 0 then os.exit(1) end
-print("ALL RADIO TESTS PASSED")
+H.finish("Component Syncer: Sync By Property radio group")
