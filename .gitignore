@@ -1,0 +1,3 @@
+# Build output. The canonical artefact is the .qplug at the repo root,
+# which the README links to and whose history git follows.
+dist/
