@@ -21,22 +21,69 @@ local FIRING = { Boolean = true, Value = true, String = true, Position = true }
      That distinction is the whole point when measuring sync cost: a redundant
      write to an already-equal control raises no event, so counting events hides
      exactly the quadratic blow-up these tests exist to catch. ]]--
-M.stats = { writes = 0 }
+M.stats = { writes = 0, reads = 0, handlers = 0 }
 
-function M.resetStats() M.stats.writes = 0 end
+function M.resetStats()
+  M.stats.writes, M.stats.reads, M.stats.handlers = 0, 0, 0
+end
 
-function M.newControl(init)
+--[[ Event dispatch mode.
+
+     A real Core dispatches control EventHandlers ASYNCHRONOUSLY, on a later
+     cycle. That difference is not cosmetic: a plugin guard that clears itself at
+     the end of a call cannot suppress an echo that arrives on the next cycle.
+     Modelling dispatch as synchronous once hid exactly that bug, so `deferred`
+     mode exists to reproduce the Core's real behaviour. ]]--
+M.dispatch = { deferred = false, queue = {} }
+
+function M.setDeferred(on)
+  M.dispatch.deferred = on and true or false
+  M.dispatch.queue = {}
+end
+
+-- Run queued handlers until the queue drains. Returns the number of cycles.
+function M.flush(maxCycles)
+  local cycles = 0
+  while #M.dispatch.queue > 0 and cycles < (maxCycles or 200) do
+    local batch = M.dispatch.queue
+    M.dispatch.queue = {}
+    for _, fn in ipairs(batch) do
+      M.stats.handlers = M.stats.handlers + 1
+      fn()
+    end
+    cycles = cycles + 1
+  end
+  return cycles
+end
+
+--[[ `async` marks a control whose handler the Core dispatches on a LATER cycle.
+
+     Only NAMED COMPONENT controls behave that way. Observed on a real Core: a
+     write to a synced gain fired the handlers of other rooms' gains on a
+     subsequent cycle (the echo this plugin has to defend against), whereas the
+     plugin's own Controls -- the Sync By radio group -- settled correctly, so
+     their handlers are not re-entered this way. Deferring everything would model
+     a Core that does not exist, and would make the radio group ping-pong
+     forever. ]]--
+function M.newControl(init, async)
   local store = { Boolean = false, Value = 0, String = "", Position = 0, Color = "" }
   for k, v in pairs(init or {}) do store[k] = v end
   local proxy = {}
   setmetatable(proxy, {
-    __index = function(_, k) return store[k] end,
+    __index = function(_, k)
+      if FIRING[k] then M.stats.reads = M.stats.reads + 1 end
+      return store[k]
+    end,
     __newindex = function(self, k, v)
       if FIRING[k] then M.stats.writes = M.stats.writes + 1 end
       local changed = store[k] ~= v
       store[k] = v
       if FIRING[k] and changed and store.EventHandler then
-        store.EventHandler(self)
+        if async and M.dispatch.deferred then
+          M.dispatch.queue[#M.dispatch.queue + 1] = function() store.EventHandler(self) end
+        else
+          store.EventHandler(self)
+        end
       end
     end,
   })
@@ -68,11 +115,11 @@ function M.design(opts)
 
   local combiner = { type = "room_combiner", controls = {} }
   for i = 1, combinerRooms do
-    combiner.controls["output." .. i .. ".combined"] = M.newControl({ Color = "Black" })
+    combiner.controls["output." .. i .. ".combined"] = M.newControl({ Color = "Black" }, true)
   end
   for i = 1, walls do
-    combiner.controls["wall." .. i .. ".open"] = M.newControl()
-    combiner.controls["wall." .. i .. ".config"] = M.newControl()
+    combiner.controls["wall." .. i .. ".open"] = M.newControl(nil, true)
+    combiner.controls["wall." .. i .. ".config"] = M.newControl(nil, true)
   end
   components["Room Combiner"] = combiner
   h.combiner = combiner
@@ -81,8 +128,8 @@ function M.design(opts)
     components["Room Gain_" .. i] = {
       type = gainType,
       controls = {
-        gain = M.newControl({ Value = 0 }),
-        mute = M.newControl(),
+        gain = M.newControl({ Value = 0 }, true),
+        mute = M.newControl(nil, true),
       },
     }
   end
@@ -136,6 +183,7 @@ function M.design(opts)
           fired = true
         end
       end
+      if M.dispatch.deferred then M.flush() end
       if not fired then break end
     end
   end

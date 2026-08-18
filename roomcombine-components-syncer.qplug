@@ -6,8 +6,8 @@ PluginInfo = {
 	-- keeps its place alongside the other Room Combiner add-ons rather than
 	-- moving under the manufacturer, so existing designs' tree position holds.
 	Name         = "Room Combiner Add-ons~Component Syncer",
-	Version      = "1.1.0.0",
-	BuildVersion = "1.1.0.0",
+	Version      = "1.1.0.1",
+	BuildVersion = "1.1.0.1",
 	-- Unchanged from 1.0.1 deliberately: the Id is what binds already-placed
 	-- instances to this plugin. A new Id orphans every existing design.
 	Id           = "2797d869-8a86-48cd-ade2-47efe96124a9",
@@ -1015,13 +1015,23 @@ if Controls then
 
 	--[[ Propagate one control's change to the rest of its group.
 
-	     Two guards keep this from turning into an O(rooms^2) storm. Writing to a
-	     synced control fires that control's own EventHandler, which would
-	     propagate the value back out across the whole group again: at 256 rooms
-	     one fader move became ~65,000 writes. `syncing` blocks the re-entry, and
-	     the value comparison means an already-equal control is never written at
-	     all, so no event is raised in the first place. ]]--
+	     Writing to a synced control fires that control's own EventHandler, which
+	     propagates the value back out across the whole group again. Three things
+	     stop that becoming an O(rooms^2) storm:
+
+	       * `syncing` blocks re-entry that happens DURING the write;
+	       * the value comparison means an already-equal control is never written,
+	         so no event is raised for it in the first place;
+	       * `lastSync` catches the rest. Q-SYS dispatches control EventHandlers
+	         asynchronously, so the targets' handlers run on a LATER cycle, by
+	         which time `syncing` has been cleared -- measured at 256 handler runs
+	         and ~66,000 control reads for a single fader move in a 256-room
+	         group. Remembering the value the group was last driven to lets each
+	         of those echoes bail out in O(1). ]]--
 	syncing = false
+
+	-- [groupName][controlName] = the value the group was last driven to.
+	lastSync = {}
 
 	function ControlHasChanged(roomChanged, ctlName)
 		if syncing then return end
@@ -1041,6 +1051,30 @@ if Controls then
 		local byPosition = Controls.SyncByPosition.Boolean
 		local byString = Controls.SyncByString.Boolean
 		local byBoolean = Controls.SyncByBoolean.Boolean
+
+		--[[ Echo short-circuit. A handler carrying the value the group was last
+		     driven to is the asynchronous echo of our own write, so there is
+		     nothing left to propagate. A genuine change to the value every room
+		     already holds is a no-op too, so treating the two alike loses
+		     nothing. Only applied when exactly one property is being synced --
+		     the radio group guarantees that, but if it were ever violated the
+		     cached value would not describe the whole change. ]]--
+		local modes, mode = 0, nil
+		if byValue    then modes = modes + 1; mode = "Value" end
+		if byPosition then modes = modes + 1; mode = "Position" end
+		if byString   then modes = modes + 1; mode = "String" end
+		if byBoolean  then modes = modes + 1; mode = "Boolean" end
+		if modes == 1 then
+			local record = lastSync[origin.groupName]
+			if record == nil then
+				record = {}
+				lastSync[origin.groupName] = record
+			end
+			local current = ctl[mode]
+			if record[ctlName] ~= nil and record[ctlName] == current then return end
+			record[ctlName] = current
+		end
+
 		local srcValue, srcPosition = ctl.Value, ctl.Position
 		local srcString, srcBoolean = ctl.String, ctl.Boolean
 
@@ -1084,6 +1118,7 @@ if Controls then
 		rooms = {}
 		groups = {}
 		wallControls = {}
+		lastSync = {}
 	end
 
 	function UpdateControlEventHandler(room, ctlName, active) -- Assign or remove control EventHandler function assignment based on whether it's active or not.
@@ -1109,6 +1144,9 @@ if Controls then
 
 	function UpdateGroupsTable()
 		groups = {}
+		-- Group membership is changing, so what each group was last driven to no
+		-- longer describes anything.
+		lastSync = {}
 		-- Ascending room order, which is what lets GetFirstRoomWithComponent take
 		-- the first match without sorting.
 		for room = 1, #Controls.SyncingComponentTargets do
@@ -1149,6 +1187,9 @@ if Controls then
 
 	function SyncroniseAllGroups() -- Syncronises all active controls within all groups
 		if DebugFunction then print("SyncroniseAllGroups()") end
+		-- This is a deliberate "force everything into agreement" pass, so it must
+		-- not be short-circuited by what was propagated before it.
+		lastSync = {}
 		for groupName, group in pairs(groups) do
 			if #group > 1 then
 				local lowestRoom = GetFirstRoomWithComponent(group)

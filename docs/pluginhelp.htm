@@ -69,7 +69,7 @@
 
 <header class="brand">
   <h1>Component Syncer for Room Combiner</h1>
-  <div class="meta">Plugin version 1.1.0.0 &middot; This document written for 1.1.0.0</div>
+  <div class="meta">Plugin version 1.1.0.1 &middot; This document written for 1.1.0.1</div>
   <div class="prov">White Label AV &middot; whitelabelav.co.nz</div>
 </header>
 
@@ -299,6 +299,20 @@
 </p>
 
 <h2>Release notes</h2>
+<h3>1.1.0.1</h3>
+<ul>
+  <li>
+    <strong>Large combined groups are substantially faster.</strong> Q-SYS dispatches
+    control events asynchronously, so when the plugin wrote a value to the other rooms
+    in a group, each of those writes raised an event on a later cycle &mdash; after the
+    in-call re-entrancy guard had already been released. Every one of those echoes then
+    re-scanned the whole group to discover it had nothing to do. In a 256-room group a
+    single fader move cost about 66,000 control reads. The plugin now remembers the
+    value each group was last driven to, so an echo is recognised and dropped in
+    constant time: the same move costs about 770 reads, and cost grows in proportion to
+    room count rather than its square.
+  </li>
+</ul>
 <h3>1.1.0.0</h3>
 <ul>
   <li>

@@ -173,6 +173,69 @@ do
 end
 
 --=============================================================================
+section("4b. Echo cost stays linear when dispatch is ASYNCHRONOUS")
+--=============================================================================
+--[[ The real Core dispatches control EventHandlers on a later cycle, so the
+     in-call `syncing` guard cannot suppress the echo of the plugin's own writes.
+     Every target's handler runs, and unless it can recognise the echo cheaply it
+     re-scans the whole group. Measured on a real 256-room design before the fix:
+     256 handler runs and ~66,000 control reads for one fader move.
+
+     This measures scan cost against group size. Quadratic growth means the echo
+     short-circuit is gone. ]]--
+local function echoCost(rooms)
+  S.setDeferred(true)
+  local h = S.design({ rooms = rooms, combinerTarget = "Room Combiner",
+                       gains = rooms, walls = 1 })
+  S.run(h, qplug)
+  h.advance(1)
+  for i = 1, rooms do h.C.SyncingComponentTargets[i].String = "Room Gain_" .. i end
+  h.advance(1)
+
+  -- one group: every room shares the combiner LED colour, which is the group key
+  local gi
+  for i, c in ipairs(h.C.SyncedControls.Choices or {}) do
+    if c.Text == "gain" then gi = i end
+  end
+  if gi then
+    h.C.SyncedControls.String = string.format('{"Text":"gain","Index":%d}', gi)
+    h.advance(1)
+  end
+  h.C.SyncByValue.Boolean = true
+  h.advance(1)
+
+  S.resetStats()
+  h.components["Room Gain_1"].controls.gain.Value = -12
+  S.flush()
+  local reads, handlers = S.stats.reads, S.stats.handlers
+
+  local synced = 0
+  for i = 2, rooms do
+    if h.components["Room Gain_" .. i].controls.gain.Value == -12 then synced = synced + 1 end
+  end
+  S.setDeferred(false)
+  return reads, handlers, synced
+end
+
+do
+  local r64, _, s64 = echoCost(64)
+  local r256, h256, s256 = echoCost(256)
+
+  check(s64 == 63, "async dispatch, 64 rooms: all 63 others synced, got " .. s64)
+  check(s256 == 255, "async dispatch, 256 rooms: all 255 others synced, got " .. s256)
+  check(h256 >= 2, "async dispatch really is deferred (echo handlers ran), got " .. h256)
+
+  -- 4x the rooms must not cost ~16x the reads. Quadratic growth is the failure.
+  local growth = r256 / r64
+  print(("   reads: 64 rooms = %d, 256 rooms = %d  (growth %.1fx for 4x rooms)")
+        :format(r64, r256, growth))
+  check(growth < 8,
+        ("echo cost grows linearly, not quadratically: 4x rooms cost %.1fx reads"):format(growth))
+  check(r256 < 5000,
+        "one fader move in a 256-room group stays cheap, got " .. r256 .. " control reads")
+end
+
+--=============================================================================
 section("Debug printing is off by default and gated on the property")
 --=============================================================================
 do
